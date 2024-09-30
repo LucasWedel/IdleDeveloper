@@ -10,14 +10,14 @@
       <p>Coins: {{ coins }}</p>
     </div>
     <div class="left-section">
-      <p>Reputation: {{ coins }}</p>
+      <p>Reputation: {{ reputation }}</p>
     </div>
   </nav>
 </template>
 
 <script lang="ts" setup>
 import { useSkills } from '~/composables/useSkills';
-const { skills, coins } = useSkills();
+const { skills, coins, reputation } = useSkills();
 </script>
 
 <style scoped>

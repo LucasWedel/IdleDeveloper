@@ -1,9 +1,9 @@
 <template>
   <div class="idle-game">
     <h2>Idle Developer</h2>
-    <button @click="incrementSkills">Write a line of code(1 Experience)</button>
-    <button @click="buyUpgrade">Buy a (Cost: {{ getUpgradeCost() }} coins)</button>
-    <p>Upgrades: {{ upgrades }}</p>
+    <button @click="incrementSkills">Write a line of code</button>
+    <button @click="buyMentor">Buy Mentor (Cost: {{ getMentorCost() }} coins)</button>
+    <p>Mentors: {{ mentors }}   Experience per second: {{ incrementPerSecond }}</p>
   </div>
   <div class="task">
     <h3>Task</h3>
@@ -21,7 +21,7 @@
 <script lang="ts" setup>
 import { useSkills } from '~/composables/useSkills';
 
-const { upgrades, incrementSkills, buyUpgrade, getUpgradeCost, taskInProgress, completeTask, currentTask, experienceRequired, skills, remainingTime, taskCompletionTime } = useSkills();
+const { taskCompletionTime, incrementPerSecond, mentors, incrementSkills, getMentorCost, buyMentor, taskInProgress, completeTask, currentTask, experienceRequired, skills, remainingTime, coins, reputation } = useSkills();
 </script>
 
 <style scoped>
@@ -46,10 +46,7 @@ const { upgrades, incrementSkills, buyUpgrade, getUpgradeCost, taskInProgress, c
   width: 300px; 
   margin: 0 auto; 
 }
-.task:hover {
-  transform: translateY(-10px);
-  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.2);
-}
+
 .task h3 {
   margin-top: 0;
 }

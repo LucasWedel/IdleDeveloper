@@ -1,12 +1,13 @@
 import { ref, onMounted, onUnmounted } from 'vue';
 
 const skills = ref(0);
-const upgrades = ref(0);
+const mentors = ref(0);
 const incrementPerSecond = ref(0);
 const coins = ref(0);
+const reputation = ref(0); 
 const taskInProgress = ref(false);
-const taskCompletionTime = ref(5000);
-const taskReward = ref(10);
+const taskCompletionTime = ref(5000); 
+const taskReward = ref(10); 
 const currentTask = ref('');
 const experienceRequired = ref(10); 
 const remainingTime = ref(0); 
@@ -28,16 +29,16 @@ const incrementSkills = () => {
   skills.value += 1;
 };
 
-const getUpgradeCost = () => {
-  return Math.floor(50 * Math.pow(1.1, upgrades.value)); 
+const getMentorCost = () => {
+  return Math.floor(20 * Math.pow(1.2, mentors.value)); 
 };
 
-const buyUpgrade = () => {
-  const cost = getUpgradeCost();
-  if (coins.value >= cost) {
-    coins.value -= cost;
-    upgrades.value += 1;
-    incrementPerSecond.value += 1;
+const buyMentor = () => {
+  const mentorCost = getMentorCost();
+  if (coins.value >= mentorCost) {
+    coins.value -= mentorCost;
+    incrementPerSecond.value += 1 + Math.floor(incrementPerSecond.value * 0.3);
+    mentors.value += 1;
   }
 };
 
@@ -54,10 +55,13 @@ const completeTask = () => {
       remainingTime.value -= 1;
       if (remainingTime.value <= 0) {
         clearInterval(interval);
-        coins.value += taskReward.value;
+        if (reputation.value < 1) {
+          coins.value += taskReward.value;
+        } else { coins.value += taskReward.value + 2*reputation.value; }        
+        reputation.value += 1
         taskInProgress.value = false;
         selectRandomTask();
-        experienceRequired.value = Math.floor(experienceRequired.value * 1.4); 
+        experienceRequired.value = Math.floor(experienceRequired.value * 1.3); 
       }
     }, 1000);
   }
@@ -91,16 +95,18 @@ export function useSkills() {
 
   return {
     skills,
-    upgrades,
+    mentors,
     coins,
+    reputation, 
     incrementSkills,
-    buyUpgrade,
-    getUpgradeCost,
+    getMentorCost,
+    buyMentor,
     taskInProgress,
     completeTask,
     currentTask,
     experienceRequired,
     remainingTime,
-    taskCompletionTime
+    taskCompletionTime,
+    incrementPerSecond
   };
 }
