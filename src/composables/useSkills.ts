@@ -13,17 +13,18 @@ const experienceRequired = ref(10);
 const remainingTime = ref(0); 
 
 const tasks = [
-  'Program an app',
-  'Create an AI',
-  'Fix a bug',
-  'Write documentation',
-  'Design a database',
-  'Optimize performance',
-  'Implement a feature',
-  'Review code',
-  'Test the application',
-  'Deploy to production'
+  'Develop a new feature for the user profile page',
+  'Optimize the database queries to reduce load times',
+  'Investigate and fix a critical memory leak in production',
+  'Write unit tests to improve code reliability and safety',
+  'Refactor legacy code to enhance performance and clarity',
+  'Create a dashboard to display user activity and stats',
+  'Update the API to handle new data input formats',
+  'Resolve security vulnerabilities in the authentication flow',
+  'Design a responsive layout for the mobile user interface',
+  'Conduct a performance review of the main application code'
 ];
+
 
 const incrementSkills = () => {
   skills.value += 1;
@@ -57,7 +58,7 @@ const completeTask = () => {
         clearInterval(interval);
         if (reputation.value < 1) {
           coins.value += taskReward.value;
-        } else { coins.value += taskReward.value + 2*reputation.value; }        
+        } else { coins.value += taskReward.value + 3*reputation.value; }        
         reputation.value += 1
         taskInProgress.value = false;
         selectRandomTask();
@@ -83,6 +84,10 @@ const stopIncrementing = () => {
   }
 };
 
+const monsterDrinkTimeLeft = ref(0);
+let monsterDrinkInterval: NodeJS.Timeout | undefined;
+let taskInterval: NodeJS.Timeout | undefined;
+
 export function useSkills() {
   onMounted(() => {
     startIncrementing();
@@ -91,9 +96,54 @@ export function useSkills() {
 
   onUnmounted(() => {
     stopIncrementing();
+    clearInterval(monsterDrinkInterval);
+    clearInterval(taskInterval);
   });
+  const originalTaskCompletionTime = ref(taskCompletionTime.value);
+
+  function drinkMonster() {
+    if (monsterDrinkTimeLeft.value > 0) return; 
+    if (coins.value >= Math.floor((taskReward.value + 2 * reputation.value) / 2)) {
+      coins.value -= Math.floor((taskReward.value + 2 * reputation.value) / 2);
+      monsterDrinkTimeLeft.value = 60;
+      clearInterval(monsterDrinkInterval);
+      monsterDrinkInterval = setInterval(() => {
+        if (monsterDrinkTimeLeft.value > 0) {
+          monsterDrinkTimeLeft.value--;
+          taskCompletionTime.value = originalTaskCompletionTime.value / 2; 
+        } else {
+          clearInterval(monsterDrinkInterval);
+          taskCompletionTime.value = originalTaskCompletionTime.value; 
+        }
+      }, 1000);
+    }
+  }
+
+  function startTask() {
+    if (!taskInProgress.value && skills.value >= experienceRequired.value) {
+      taskInProgress.value = true;
+      remainingTime.value = taskCompletionTime.value / 1000;
+      clearInterval(taskInterval);
+      taskInterval = setInterval(() => {
+        remainingTime.value -= 0.1;
+        if (remainingTime.value <= 0) {
+          clearInterval(taskInterval);
+          if (reputation.value < 1) {
+            coins.value += taskReward.value;
+          } else {
+            coins.value += taskReward.value + 3 * reputation.value;
+          }
+          reputation.value += 1;
+          taskInProgress.value = false;
+          selectRandomTask();
+          experienceRequired.value = Math.floor(experienceRequired.value * 1.3);
+        }
+      }, 100);
+    }
+  }
 
   return {
+    taskReward,
     skills,
     mentors,
     coins,
@@ -107,6 +157,9 @@ export function useSkills() {
     experienceRequired,
     remainingTime,
     taskCompletionTime,
-    incrementPerSecond
+    incrementPerSecond,
+    drinkMonster,
+    monsterDrinkTimeLeft,
+    startTask 
   };
 }
