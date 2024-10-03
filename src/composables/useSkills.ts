@@ -1,4 +1,4 @@
-import { ref, onMounted, onUnmounted } from 'vue';
+import { ref, onMounted, onUnmounted, computed } from 'vue';
 
 const skills = ref(0);
 const mentors = ref(0);
@@ -6,11 +6,15 @@ const incrementPerSecond = ref(0);
 const coins = ref(0);
 const reputation = ref(0); 
 const taskInProgress = ref(false);
-const taskCompletionTime = ref(5000); 
 const taskReward = ref(10); 
 const currentTask = ref('');
 const experienceRequired = ref(10); 
 const remainingTime = ref(0); 
+const tasksCompleted = ref(0);
+const originalTaskCompletionTime = ref(5000);
+const autoStartEnabled = ref(false);
+const autoStartPurchased = ref(false);
+const doubleExperienceActive = ref(false);
 
 const tasks = [
   'Develop a new feature for the user profile page',
@@ -25,9 +29,19 @@ const tasks = [
   'Conduct a performance review of the main application code'
 ];
 
+const taskCompletionTime = computed(() => {
+  if (monsterDrinkTimeLeft.value > 0) {
+    return originalTaskCompletionTime.value / 2;
+  }
+  return originalTaskCompletionTime.value;
+});
 
 const incrementSkills = () => {
-  skills.value += 1;
+  if (doubleExperienceActive.value) {
+    skills.value += 1 * 2;
+  } else {
+    skills.value += 1;
+  }
 };
 
 const getMentorCost = () => {
@@ -46,26 +60,7 @@ const buyMentor = () => {
 const selectRandomTask = () => {
   const randomIndex = Math.floor(Math.random() * tasks.length);
   currentTask.value = tasks[randomIndex];
-};
-
-const completeTask = () => {
-  if (!taskInProgress.value && skills.value >= experienceRequired.value) {
-    taskInProgress.value = true;
-    remainingTime.value = taskCompletionTime.value / 1000;
-    const interval = setInterval(() => {
-      remainingTime.value -= 1;
-      if (remainingTime.value <= 0) {
-        clearInterval(interval);
-        if (reputation.value < 1) {
-          coins.value += taskReward.value;
-        } else { coins.value += taskReward.value + 3*reputation.value; }        
-        reputation.value += 1
-        taskInProgress.value = false;
-        selectRandomTask();
-        experienceRequired.value = Math.floor(experienceRequired.value * 1.3); 
-      }
-    }, 1000);
-  }
+  originalTaskCompletionTime.value = 5000 + reputation.value * 1000 / 2;
 };
 
 let intervalId: number | undefined;
@@ -73,7 +68,12 @@ let intervalId: number | undefined;
 const startIncrementing = () => {
   if (intervalId) return; 
   intervalId = window.setInterval(() => {
-    skills.value += incrementPerSecond.value;
+    if (doubleExperienceActive.value) {
+      skills.value += incrementPerSecond.value * 2;
+    } else {
+      skills.value += incrementPerSecond.value;
+    }
+    
   }, 1000);
 };
 
@@ -88,32 +88,73 @@ const monsterDrinkTimeLeft = ref(0);
 let monsterDrinkInterval: NodeJS.Timeout | undefined;
 let taskInterval: NodeJS.Timeout | undefined;
 
+const doubleExperienceTimeLeft = ref(0);
+let doubleExperienceInterval: NodeJS.Timeout | undefined;
+
+
 export function useSkills() {
+
+  watch(
+    () => skills.value,
+    (newSkills) => {
+      if (autoStartEnabled.value && newSkills >= experienceRequired.value && !taskInProgress.value) {
+        startTask();
+      }
+    }
+  );
+
+  function toggleAutoStart() {
+    if (!autoStartPurchased.value) {
+      if (coins.value >= 200) {
+        coins.value -= 200;
+        autoStartPurchased.value = true;
+        autoStartEnabled.value = true;
+      } else {
+        alert('Not enough coins to purchase auto-start.');
+      }
+    } else {
+      autoStartEnabled.value = !autoStartEnabled.value;
+    }
+  }
+
   onMounted(() => {
     startIncrementing();
     selectRandomTask(); 
   });
 
   onUnmounted(() => {
-    stopIncrementing();
-    clearInterval(monsterDrinkInterval);
-    clearInterval(taskInterval);
+
   });
-  const originalTaskCompletionTime = ref(taskCompletionTime.value);
+
+  function activateDoubleExperience() {
+    if (doubleExperienceTimeLeft.value > 0) return;
+    if (coins.value >= Math.floor((taskReward.value + 2 * reputation.value) / 2)) {
+      coins.value -= Math.floor((taskReward.value + 2 * reputation.value) / 2);
+      doubleExperienceActive.value = true;
+      doubleExperienceTimeLeft.value = 60;
+      clearInterval(doubleExperienceInterval);
+      doubleExperienceInterval = setInterval(() => {
+        if (doubleExperienceTimeLeft.value > 0) {
+          doubleExperienceTimeLeft.value--;
+        } else {
+          doubleExperienceActive.value = false;
+          clearInterval(doubleExperienceInterval);
+        }
+      }, 1000);
+    }
+  }
 
   function drinkMonster() {
     if (monsterDrinkTimeLeft.value > 0) return; 
-    if (coins.value >= Math.floor((taskReward.value + 2 * reputation.value) / 2)) {
-      coins.value -= Math.floor((taskReward.value + 2 * reputation.value) / 2);
+    if (coins.value >= Math.floor((taskReward.value + 2 * reputation.value))) {
+      coins.value -= Math.floor((taskReward.value + 2 * reputation.value));
       monsterDrinkTimeLeft.value = 60;
       clearInterval(monsterDrinkInterval);
       monsterDrinkInterval = setInterval(() => {
         if (monsterDrinkTimeLeft.value > 0) {
           monsterDrinkTimeLeft.value--;
-          taskCompletionTime.value = originalTaskCompletionTime.value / 2; 
         } else {
           clearInterval(monsterDrinkInterval);
-          taskCompletionTime.value = originalTaskCompletionTime.value; 
         }
       }, 1000);
     }
@@ -122,8 +163,8 @@ export function useSkills() {
   function startTask() {
     if (!taskInProgress.value && skills.value >= experienceRequired.value) {
       taskInProgress.value = true;
-      remainingTime.value = taskCompletionTime.value / 1000;
       clearInterval(taskInterval);
+      remainingTime.value = taskCompletionTime.value / 1000;
       taskInterval = setInterval(() => {
         remainingTime.value -= 0.1;
         if (remainingTime.value <= 0) {
@@ -137,12 +178,18 @@ export function useSkills() {
           taskInProgress.value = false;
           selectRandomTask();
           experienceRequired.value = Math.floor(experienceRequired.value * 1.3);
+          if (autoStartEnabled.value) {
+            startTask();
+          }
         }
       }, 100);
     }
   }
 
   return {
+    autoStartPurchased,
+    toggleAutoStart,
+    autoStartEnabled,
     taskReward,
     skills,
     mentors,
@@ -152,7 +199,6 @@ export function useSkills() {
     getMentorCost,
     buyMentor,
     taskInProgress,
-    completeTask,
     currentTask,
     experienceRequired,
     remainingTime,
@@ -160,6 +206,8 @@ export function useSkills() {
     incrementPerSecond,
     drinkMonster,
     monsterDrinkTimeLeft,
-    startTask 
+    startTask,
+    activateDoubleExperience,
+    doubleExperienceTimeLeft,
   };
 }
