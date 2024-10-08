@@ -1,5 +1,8 @@
 import { ref, onMounted, onUnmounted, computed } from 'vue';
 
+const monsterDrinkTimeLeft = ref(0);
+const infiniteStudyUnlocked = ref(false);
+const infiniteMonsterUnlocked = ref(false);
 const skills = ref(0);
 const mentors = ref(0);
 const incrementPerSecond = ref(0);
@@ -8,6 +11,11 @@ const reputation = ref(0);
 const taskInProgress = ref(false);
 const taskReward = ref(10); 
 const currentTask = ref('');
+const teamTaskInProgress = ref(false);
+const teamRemainingTime = ref(0);
+const teamTaskReward = ref(0);
+const teamTaskCompletionTime = ref(5000);
+const teamCurrentTask = ref('');
 const experienceRequired = ref(10); 
 const remainingTime = ref(0); 
 const tasksCompleted = ref(0);
@@ -15,6 +23,17 @@ const originalTaskCompletionTime = ref(5000);
 const autoStartEnabled = ref(false);
 const autoStartPurchased = ref(false);
 const doubleExperienceActive = ref(false);
+const companyUnlocked = ref(false);
+const juniorDeveloper = ref(1);
+const juniorDeveloperCost = ref(100);
+const seniorDeveloper = ref(0);
+const seniorDeveloperCost = ref(200);
+const teamLeader = ref(0);
+const teamLeaderCost = ref(400);
+const teams = ref(0);
+const juniorDevelopersSize = ref(1);
+const seniorDevelopersSize = ref(0);
+const teamLeadersSize = ref(0);
 
 const tasks = [
   'Develop a new feature for the user profile page',
@@ -29,15 +48,50 @@ const tasks = [
   'Conduct a performance review of the main application code'
 ];
 
+const buyJuniorDeveloper = () => { 
+  if (coins.value >= juniorDeveloperCost.value) {
+    coins.value -= juniorDeveloperCost.value;
+    juniorDeveloper.value += 1;
+    juniorDeveloperCost.value += 100;
+  }
+}
+
+const buySeniorDeveloper = () => {
+  if (juniorDeveloper.value >= 1 && coins.value >= seniorDeveloperCost.value) {
+    coins.value -= seniorDeveloperCost.value;
+    juniorDeveloper.value -= 1;
+    seniorDeveloper.value += 1;
+    seniorDeveloperCost.value += 200;
+  }
+}
+
+const buyTeamLeader = () => {
+  if (seniorDeveloper.value >= 1 && coins.value >= teamLeaderCost.value) {
+    coins.value -= teamLeaderCost.value;
+    seniorDeveloper.value -= 1;
+    teamLeader.value += 1;
+    teamLeaderCost.value += 400;
+  }
+}
+
+const buyTeams = () => {
+  if (teamLeader.value >= 1 && seniorDeveloper.value >= 2 && juniorDeveloper.value >= 3) {
+    teamLeader.value -= 1;
+    seniorDeveloper.value -= 2;
+    juniorDeveloper.value -= 3;
+    teams.value += 1;
+  }
+} 
+
 const taskCompletionTime = computed(() => {
-  if (monsterDrinkTimeLeft.value > 0) {
+  if (monsterDrinkTimeLeft.value > 0 || infiniteMonsterUnlocked.value) {
     return originalTaskCompletionTime.value / 2;
   }
   return originalTaskCompletionTime.value;
 });
 
 const incrementSkills = () => {
-  if (doubleExperienceActive.value) {
+  if (doubleExperienceActive.value || infiniteStudyUnlocked.value) {
     skills.value += 1 * 2;
   } else {
     skills.value += 1;
@@ -60,7 +114,7 @@ const buyMentor = () => {
 const selectRandomTask = () => {
   const randomIndex = Math.floor(Math.random() * tasks.length);
   currentTask.value = tasks[randomIndex];
-  originalTaskCompletionTime.value = 5000 + reputation.value * 1000 / 2;
+  originalTaskCompletionTime.value = 5000 + Math.floor(Math.random() * 5000);
 };
 
 let intervalId: number | undefined;
@@ -68,7 +122,7 @@ let intervalId: number | undefined;
 const startIncrementing = () => {
   if (intervalId) return; 
   intervalId = window.setInterval(() => {
-    if (doubleExperienceActive.value) {
+    if (doubleExperienceActive.value || infiniteStudyUnlocked.value) {
       skills.value += incrementPerSecond.value * 2;
     } else {
       skills.value += incrementPerSecond.value;
@@ -84,9 +138,12 @@ const stopIncrementing = () => {
   }
 };
 
-const monsterDrinkTimeLeft = ref(0);
+
+
+
 let monsterDrinkInterval: NodeJS.Timeout | undefined;
 let taskInterval: NodeJS.Timeout | undefined;
+let teamTaskInterval: NodeJS.Timeout | undefined;
 
 const doubleExperienceTimeLeft = ref(0);
 let doubleExperienceInterval: NodeJS.Timeout | undefined;
@@ -160,6 +217,110 @@ export function useSkills() {
     }
   }
 
+  function unlockCompany() {
+    if (coins.value >= 0) {
+      coins.value -= 0;
+      companyUnlocked.value = true;
+    } else {
+      alert('Not enough coins to unlock the company.');
+    }
+  }
+
+
+
+  function infiniteStudy() {
+    if (!infiniteStudyUnlocked.value) {
+      if (coins.value >= 500) {
+        coins.value -= 500;
+        infiniteStudyUnlocked.value = true;
+      } else {
+        alert('Not enough coins to unlock infinite study.');
+      }
+    } 
+  }
+
+  function infiniteMonster() {
+    if (!infiniteMonsterUnlocked.value) {
+      if (coins.value >= 500) {
+        coins.value -= 500;
+        infiniteMonsterUnlocked.value = true;
+      } else {
+        alert('Not enough coins to unlock infinite energy drink.');
+      }
+    } 
+  }
+
+  function findJuniorSize() {
+    juniorDevelopersSize.value = juniorDeveloper.value;
+
+    let randomChance = Math.random();
+
+    if (randomChance <= 0.25) {
+      juniorDevelopersSize.value += 1;
+    }
+
+    if (juniorDevelopersSize.value < 1) {
+      juniorDevelopersSize.value = 1;
+    }
+    return juniorDevelopersSize.value;
+  }
+
+  function findSeniorSize() {
+    seniorDevelopersSize.value = seniorDeveloper.value;
+
+    let randomChance = Math.random();
+
+    if (randomChance <= 0.33) {
+      seniorDevelopersSize.value += 1;
+    }
+
+    if (seniorDevelopersSize.value < 0) {
+      seniorDevelopersSize.value = 0;
+    }
+    return seniorDevelopersSize.value;
+  }
+
+  function findLeaderSize() {
+    teamLeadersSize.value = teamLeader.value;
+
+    let randomChance = Math.random();
+
+    if (randomChance <= 0.2) {
+      teamLeadersSize.value += 1;
+    }
+
+    if (teamLeadersSize.value < 0) {
+      teamLeadersSize.value = 0;
+    }
+    return teamLeadersSize.value;
+  }
+
+  function startTeamTask() { 
+
+    teamTaskReward.value = juniorDevelopersSize.value * 100 + seniorDevelopersSize.value * 200 + teamLeadersSize.value * 400;
+
+    if (!teamTaskInProgress.value && juniorDeveloper.value >= juniorDevelopersSize.value && seniorDeveloper.value >= seniorDevelopersSize.value && teamLeader.value >= teamLeadersSize.value) {
+      teamTaskInProgress.value = true;
+      clearInterval(teamTaskInterval);
+      teamRemainingTime.value = teamTaskCompletionTime.value / 1000;
+      teamTaskInterval = setInterval(() => {
+        teamRemainingTime.value -= 0.1;
+        if (teamRemainingTime.value <= 0) {
+          clearInterval(teamTaskInterval); 
+          coins.value += teamTaskReward.value;
+          reputation.value += 10;
+          skills.value += 500;
+          teamTaskInProgress.value = false;
+          selectRandomTask();   
+          findJuniorSize();
+          findSeniorSize();
+          findLeaderSize();
+          teamTaskReward.value = juniorDevelopersSize.value * 100 + seniorDevelopersSize.value * 200 + teamLeadersSize.value * 400;
+        }
+      }, 100);
+    }
+  }
+
   function startTask() {
     if (!taskInProgress.value && skills.value >= experienceRequired.value) {
       taskInProgress.value = true;
@@ -172,7 +333,7 @@ export function useSkills() {
           if (reputation.value < 1) {
             coins.value += taskReward.value;
           } else {
-            coins.value += taskReward.value + 3 * reputation.value;
+            coins.value += taskReward.value + 3 * reputation.value + 2 * mentors.value;
           }
           reputation.value += 1;
           taskInProgress.value = false;
@@ -187,6 +348,32 @@ export function useSkills() {
   }
 
   return {
+    juniorDevelopersSize,
+    seniorDevelopersSize,
+    teamLeadersSize,
+    startTeamTask,
+    teamTaskInProgress,
+    teamRemainingTime,
+    teamTaskReward,
+    teamTaskCompletionTime,
+    teamCurrentTask,
+    teamLeaderCost,
+    seniorDeveloperCost,
+    buyTeams,
+    teams,
+    buyJuniorDeveloper,
+    buySeniorDeveloper,
+    buyTeamLeader,
+    juniorDeveloper,
+    juniorDeveloperCost,
+    seniorDeveloper,
+    teamLeader,
+    infiniteStudy,
+    infiniteMonster,
+    infiniteStudyUnlocked,
+    infiniteMonsterUnlocked,
+    unlockCompany,
+    companyUnlocked,
     autoStartPurchased,
     toggleAutoStart,
     autoStartEnabled,

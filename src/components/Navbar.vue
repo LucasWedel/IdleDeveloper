@@ -3,18 +3,13 @@
     <div class="left-section">
       <h1>Idle Developer</h1>
     </div>
-    <div class="left-section">
+    <div class="center-section">
       <p>Experience: {{ skills }}</p>
-    </div>
-    <div class="left-section">
       <p>Coins: {{ coins }}</p>
-    </div>
-    <div class="left-section">
       <p>Reputation: {{ reputation }}</p>
     </div>
   </nav>
 </template>
-
 <script lang="ts" setup>
 import { useSkills } from '~/composables/useSkills';
 const { skills, coins, reputation } = useSkills();
@@ -33,22 +28,20 @@ const { skills, coins, reputation } = useSkills();
   align-items: center;
   padding: 0 20px;
   color: white;
-  font-family: 'Optima', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  z-index: 1000;
 }
+
 .left-section {
-  flex: 1;
   display: flex;
-  justify-content: flex-start;
+  align-items: center;
 }
+
 .center-section {
-  flex: 1;
   display: flex;
+  align-items: center;
   justify-content: center;
-}
-.right-section {
-  flex: 1;
-  display: flex;
-  justify-content: flex-end;
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  gap: 300px;
 }
 </style>
